@@ -1,0 +1,14 @@
+__pycache__
+.venv
+*/__pycache__
+
+vivos
+vlsp-2020
+.idea
+*.zip
+*.tar.gz
+*.csv
+vocab.json
+*.log
+
+configs.yaml

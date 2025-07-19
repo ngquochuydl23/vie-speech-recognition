@@ -1,0 +1,11 @@
+torch
+torchaudio
+transformers
+librosa
+numpy
+pandas
+pandarallel
+tqdm
+scikit-learn
+jiwer
+pyyaml
