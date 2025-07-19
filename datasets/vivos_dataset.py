@@ -1,7 +1,7 @@
 import os
 import pandas as pd
 import logging
-from datasets.dataset_factory import DatasetFactory
+from .dataset_factory import DatasetFactory
 
 
 class VIVOSDatasetFactory(DatasetFactory):

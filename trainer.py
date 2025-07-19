@@ -7,7 +7,7 @@ from torch.amp import autocast
 from typing import Dict, Union
 from time import sleep
 from jiwer import wer
-from .utils.tqdm_config import TQDMConfigs
+from utils.tqdm_config import TQDMConfigs
 from logger import logging
 class Trainer:
     def __init__(self,

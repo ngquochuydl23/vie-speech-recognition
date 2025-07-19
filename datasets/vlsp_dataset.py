@@ -1,6 +1,6 @@
 import os
 import pandas as pd
-from datasets.dataset_factory import DatasetFactory
+from .dataset_factory import DatasetFactory
 
 
 class VLSPDatasetFactory(DatasetFactory):
