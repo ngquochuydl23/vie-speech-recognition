@@ -5,6 +5,7 @@ from tqdm import tqdm
 from logger import logging
 from utils.tqdm_config import TQDMConfigs
 from utils.dataset_config import DatasetConfigs
+import zipfile
 
 def download_file(url: str, output_path: str, name: str):
     logging.info(f"Downloading {name} dataset")
@@ -26,12 +27,15 @@ def download_file(url: str, output_path: str, name: str):
         bar.close()
 
 
-def extract_tar_gz(file_path: str, extract_path: str, name: str):
-    logging.info(f"Extract .tar.gz archive {name} dataset")
+def extract_ds(file_path: str, name: str):
     if tarfile.is_tarfile(file_path):
+        logging.info(f"Extract .tar.gz archive {name} dataset")
         with tarfile.open(file_path, "r:gz") as tar:
-            tar.extractall(path=extract_path)
-        logging.info(f"Extracted to: {extract_path}")
+            tar.extractall(path='./')
+    elif file_path.endswith('.zip') and name == 'VLSP':
+        logging.info(f"Extract .zip archive {name} dataset")
+        with zipfile.ZipFile(file_path, 'r') as zip_ref:
+            zip_ref.extractall(path='./vlsp-2020')
     else:
         logging.info("Not a valid tar.gz file.")
 
@@ -40,11 +44,11 @@ if __name__ == "__main__":
     dataset_configs = DatasetConfigs().get_config()
     vivos_ds = dataset_configs['vivos']
     vlsp_ds = dataset_configs['vlsp']
-    print(dataset_configs)
+
     os.makedirs(vivos_ds['data_dir'], exist_ok=True)
     download_file(vivos_ds['url'], vivos_ds['download_file'], vivos_ds['name'])
-    extract_tar_gz(vivos_ds['download_file'], vivos_ds['data_dir'], vivos_ds['name'])
+    extract_ds(vivos_ds['download_file'], vivos_ds['name'])
 
     os.makedirs(vlsp_ds['data_dir'], exist_ok=True)
     download_file(vlsp_ds['url'], vlsp_ds['download_file'], vlsp_ds['name'])
-    extract_tar_gz(vlsp_ds['download_file'], vlsp_ds['data_dir'], vlsp_ds['name'])
+    extract_ds(vlsp_ds['download_file'], vlsp_ds['name'])
