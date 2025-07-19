@@ -9,6 +9,7 @@ from time import sleep
 from jiwer import wer
 from utils.tqdm_config import TQDMConfigs
 from logger import logging
+
 class Trainer:
     def __init__(self,
                  resume,
@@ -135,18 +136,14 @@ class Trainer:
         logging.info("\nValidation is in progress...")
         self.model.eval()
         val_logs = self._valid_epoch(epoch)
+        
+        print(f"[Validation Epoch {epoch + 1}] Final Loss: {val_logs['loss']:.4f} - Final WER: {val_logs['wer']:.4f}")
+        print("Saving checkpoint...")
 
-        # print("\nSaving checkpoint...")
-
-        # write val logs
-        # self.writer.update(self.completed_steps, 'Validation', val_logs)
-        # pbar.update(self.pbar_step + 1, "val_", val_logs)
-
-        # Save best
-        # if self._is_best_epoch(val_logs['wer'], save_max_metric_score=self.save_max_metric_score):
-        #    self._save_checkpoint(epoch, is_best_epoch=True)
-        # else:
-        #    self._save_checkpoint(epoch, is_best_epoch=False)
+        self._save_checkpoint(
+            epoch, 
+            is_best_epoch=self._is_best_epoch(score=val_logs['wer'], save_max_metric_score=self.save_max_metric_score))
+        
 
     def _is_best_epoch(self, score, save_max_metric_score=True) -> bool:
         if save_max_metric_score and score >= self.best_score:
@@ -157,9 +154,9 @@ class Trainer:
             return True
         return False
 
+
     def _save_checkpoint(self, epoch: int, is_best_epoch: bool = False) -> None:
         logging.info(f"\n Saving model checkpoint...")
-
         state_dict = {
             "epoch": epoch, 
             "best_score": self.best_score, 
@@ -169,21 +166,15 @@ class Trainer:
             "completed_steps": self.completed_steps, 
             "model": self.model.state_dict()
         }
-        
         torch.save(state_dict, os.path.join(self.save_dir, "latest_model.tar"))
         torch.save(state_dict, os.path.join(self.save_dir, f"model_{str(epoch)}.tar"))
 
         # If the model get a best metric score (is_best_epoch=True) in the current epoch,
         # the model checkpoint will be saved as "best_model.tar."
         # The newer best-scored checkpoint will overwrite the older one.
-        # if is_best_epoch:
-        #    torch.save(state_dict, os.path.join(self.save_dir, "best_model.tar"))
+        if is_best_epoch:
+            torch.save(state_dict, os.path.join(self.save_dir, "best_model.tar"))
 
-    ##
-    #   self.model.save_pretrained(self.config["huggingface"]["args"]["local_dir"])
-
-    # if self.config["huggingface"]["push_to_hub"] and self.config["huggingface"]["push_every_validation_step"]:
-    #     self._push_to_hub("update_best_model", True)
 
     def _valid_epoch(self, epoch) -> Dict[str, Union[Any, float]]:
         self.val_sampler.set_epoch(epoch)
