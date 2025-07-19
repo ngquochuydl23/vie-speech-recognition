@@ -19,3 +19,6 @@ if __name__ == '__main__':
     vlsp_df = pd.read_csv(VLSP_DATA_DF)
     vivos_df = pd.read_csv(VIVOS_DF_PATH)
     combined_df = pd.concat([vlsp_df, vivos_df], ignore_index=True)
+
+    combined_df.to_csv('./combined_dataset.csv')
+    print(f"Size of combined dataset: {len(combined_df)}")
