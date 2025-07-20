@@ -71,6 +71,7 @@ class Trainer:
         self.best_score = None
         
         self.train_progressbar_color = TQDMConfigs().train_progressbar_color
+        os.makedirs(self.save_dir, exist_ok=True)
 
     def get_grad_norm(self, params, scale=1) -> torch.tensor:
         """Compute grad norm given a gradient scale."""
