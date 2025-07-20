@@ -146,6 +146,9 @@ class Trainer:
         
 
     def _is_best_epoch(self, score, save_max_metric_score=True) -> bool:
+        if self.best_score is None:
+            self.best_score = score
+            return False
         if save_max_metric_score and score >= self.best_score:
             self.best_score = score
             return True

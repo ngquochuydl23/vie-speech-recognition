@@ -3,7 +3,7 @@ from unittest.mock import MagicMock, patch
 import torch
 import os
 
-from ..trainer import Trainer
+from trainer import Trainer
 
 
 class TestTrainer(unittest.TestCase):
@@ -50,6 +50,13 @@ class TestTrainer(unittest.TestCase):
         # higher is better
         result = self.trainer._is_best_epoch(0.9, save_max_metric_score=True)
         self.assertTrue(result)
+        self.assertEqual(self.trainer.best_score, 0.9)
+
+    def test_is_best_epoch_epoch1(self):
+        self.trainer.best_score = None
+        result = self.trainer._is_best_epoch(0.9, save_max_metric_score=True)
+        self.assertIsNotNone(self.trainer.best_score)
+        self.assertFalse(result)
         self.assertEqual(self.trainer.best_score, 0.9)
 
     def test_get_grad_norm_with_grad(self):
