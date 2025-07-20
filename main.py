@@ -8,11 +8,16 @@ from default_collate import DefaultCollate
 from trainer import Trainer
 from warmup_lr import WarmupLR
 from utils.train_config import TrainConfigs
-
+from logger import logging
+import traceback
 
 os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
 
+def clear_console():
+    os.system('cls' if os.name == 'nt' else 'clear')
+
 if __name__ == '__main__':
+    clear_console()
     torch.cuda.empty_cache()
     torch.cuda.ipc_collect()
         
@@ -78,6 +83,7 @@ if __name__ == '__main__':
     optimizer = torch.optim.AdamW(params=model.parameters(), lr=train_configs["lr"])
     steps_per_epoch = (len(train_dl) // train_configs["gradient_accumulation_steps"]) + (
             len(train_dl) % train_configs["gradient_accumulation_steps"] != 0)
+    
     scheduler = WarmupLR(optimizer=optimizer, warmup_steps=train_configs["warmup_steps"])
     trainer = Trainer(
         resume=train_configs["resume"],
@@ -101,6 +107,11 @@ if __name__ == '__main__':
         stateful_metrics=None,
         save_max_metric_score=False,
     )
-    trainer.train()
     
+    try:
+        clear_console()
+        trainer.train()   
+    except Exception as e:
+        logging.error("An error occurred during training:")
+        logging.error(traceback.format_exc())     
 
