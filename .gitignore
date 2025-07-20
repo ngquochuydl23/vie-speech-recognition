@@ -13,3 +13,5 @@ vocab.json
 logs
 configs.yaml
 checkpoints
+.ipynb_checkpoints
+saved
