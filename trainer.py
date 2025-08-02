@@ -1,4 +1,3 @@
-from ctypes import Union
 from typing import Any
 import torch
 import os
@@ -9,6 +8,7 @@ from time import sleep
 from jiwer import wer
 from utils.tqdm_config import TQDMConfigs
 from logger import logging
+from utils.clean_text import clean_text
 
 class Trainer:
     def __init__(self,
@@ -16,7 +16,6 @@ class Trainer:
                  preload,
                  epochs,
                  steps_per_epoch,
-
                  model,
                  compute_metric,
                  processor,
@@ -24,27 +23,24 @@ class Trainer:
                  val_dl,
                  train_sampler,
                  val_sampler,
-
                  optimizer,
                  scheduler,
                  save_dir,
-
                  gradient_accumulation_steps,
                  use_amp,
                  max_clip_grad_norm,
                  sampling_rate=16000,
                  stateful_metrics=None,
                  save_max_metric_score=False,
+                 start_epoch=0,
                  ):
 
         self.resume = resume
         self.preload = preload
         self.epochs = epochs
         self.steps_per_epoch = steps_per_epoch
-
-        self.start_epoch = 0
+        self.start_epoch = start_epoch
         self.pbar_step = 0
-
         self.model = model
         self.compute_metric = compute_metric
         self.processor = processor
@@ -52,18 +48,14 @@ class Trainer:
         self.val_dl = val_dl
         self.train_sampler = train_sampler
         self.val_sampler = val_sampler
-
         self.optimizer = optimizer
         self.scheduler = scheduler
         self.save_dir = save_dir
-
         self.gradient_accumulation_steps = gradient_accumulation_steps
         self.scaler = torch.amp.GradScaler(enabled=use_amp)
         self.max_clip_grad_norm = max_clip_grad_norm
-
         self.use_distill = False
         self.use_amp = use_amp
-
         self.completed_steps = 0
         self.sampling_rate = sampling_rate
         self.stateful_metrics = stateful_metrics
@@ -104,8 +96,6 @@ class Trainer:
             if (dl_step + 1) % self.gradient_accumulation_steps == 0 or dl_step == len(self.train_dl) - 1:
                 # compute grad norm for monitoring
                 grad_norm = self.get_grad_norm(self.model.parameters(), scale=self.scaler.get_scale())
-
-                # gradient clipping
                 self.scaler.unscale_(self.optimizer)
                 torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.max_clip_grad_norm)
 
@@ -172,22 +162,18 @@ class Trainer:
         }
         torch.save(state_dict, os.path.join(self.save_dir, "latest_model.tar"))
         torch.save(state_dict, os.path.join(self.save_dir, f"model_{str(epoch)}.tar"))
-
-        # If the model get a best metric score (is_best_epoch=True) in the current epoch,
-        # the model checkpoint will be saved as "best_model.tar."
-        # The newer best-scored checkpoint will overwrite the older one.
         if is_best_epoch:
             torch.save(state_dict, os.path.join(self.save_dir, "best_model.tar"))
 
 
     def _valid_epoch(self, epoch) -> Dict[str, Union[Any, float]]:
         self.val_sampler.set_epoch(epoch)
-        # init logs
+        self.model.eval()
         val_logs = {
             "loss": 0,
             "wer": 0
         }
-
+        
         for batch in self.val_dl:
             for k, v in batch.items():
                 if isinstance(v, torch.Tensor):
@@ -196,10 +182,16 @@ class Trainer:
             with torch.no_grad():
                 with autocast(enabled=self.use_amp, device_type='cuda'):
                     outputs = self.model(**batch)
+            pred_ids = torch.argmax(outputs.logits, dim=-1)
+            pred_str = self.processor.batch_decode(pred_ids, skip_special_tokens=True)
+            label_str = self.processor.batch_decode(batch["labels"], skip_special_tokens=True)
 
+            if len(pred_str) > 0 and len(label_str) > 0:
+                print(f"Pred: {clean_text(pred_str[0])}\nLabel: {label_str[0]}")
             val_logs["loss"] += outputs.loss / len(self.val_dl)
             val_logs["wer"] += torch.tensor(self.compute_wer(outputs.logits, batch["labels"])) / len(self.val_dl)
-
+            print(f'loss: {val_logs["loss"]}')
+            print(f'wer: {val_logs["wer"]}')
         val_logs = {k: v.item() if hasattr(v, 'item') else v for k, v in val_logs.items()}
         return val_logs
 
@@ -216,5 +208,6 @@ class Trainer:
     def compute_wer(self, logits, labels):
         pred_ids = torch.argmax(logits, dim=-1)
         pred_str = self.processor.batch_decode(pred_ids, skip_special_tokens=True)
+        pred_str = clean_text(pred_str)
         label_str = self.processor.batch_decode(labels, skip_special_tokens=True)
         return wer(label_str, pred_str)

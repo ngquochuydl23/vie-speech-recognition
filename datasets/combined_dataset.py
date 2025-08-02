@@ -3,5 +3,5 @@ from .dataset_factory import DatasetFactory
 
 class CombinedDatasetFactory(DatasetFactory):
     def create_df(self):
-        return pd.read_csv('./combined_dataset.csv')
+        return pd.read_csv('./filtered_dataset.csv')
 
